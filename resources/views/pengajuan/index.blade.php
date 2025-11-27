@@ -102,7 +102,7 @@ Dashboard
                                                                                 $lmbh->klasifikasi_limbah->kode_limbah
                                                                                 }}</td>
                                                                             <td>{{ $lmbh->tgl_masuk }}</td>
-                                                                            <td>{{ $lmbh->user->unit }}</td>
+                                                                            <td>{{ $lmbh->user->unit->nama_unit ?? 'Tidak Diketahui' }}</td>
                                                                             <td>{{ $lmbh->jml_masuk }} {{
                                                                                 $lmbh->satuan }}</td>
                                                                             <td></td>
@@ -234,7 +234,7 @@ Dashboard
                                                                                 </select>
                                                                             </td>
                                                                             <td>{{ $lmbh->tgl_masuk }}</td>
-                                                                            <td>{{ $lmbh->user->unit }}</td>
+                                                                            <td>{{ $lmbh->user->unit->nama_unit ?? 'Tidak diketahui' }}</td>
                                                                             <td>
                                                                                 <input type="number" name="jml_masuk[]"
                                                                                     class="form-control"

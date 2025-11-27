@@ -42,7 +42,8 @@ class DokumenController extends Controller
      */
     public function show(string $id)
     {
-        $aktivitas_limbah = AktivitasLimbah::where('sumber',Session::get('unit'))->where('aktivitas','masuk')->get();
+        // Filter by sumber now stored as unit_id integer
+        $aktivitas_limbah = AktivitasLimbah::where('sumber',Session::get('unit_id'))->where('aktivitas','masuk')->get();
         return view('dokumen.index2',compact('aktivitas_limbah'));
     }
 

@@ -158,7 +158,7 @@
                 </td>
             </tr>
             <tr>
-                <th colspan="3">Ka.Unit {{$aktivitas_limbah->sumber}}</th>
+                <th colspan="3">Ka.Unit {{ $aktivitas_limbah->sumber_unit->nama_unit ?? $aktivitas_limbah->user->unit->nama_unit ?? 'Unit Tidak Diketahui' }}</th>
             </tr>
             <tr>
                 <td colspan="6" style="text-align:start;">Diterima Tanggal : </td>

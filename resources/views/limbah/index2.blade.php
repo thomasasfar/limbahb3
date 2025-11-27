@@ -181,7 +181,7 @@ Limbah
                                                         Y')
                                                         }}</td>
                                                     <td>{{$masuk->jenis_limbah}}</td>
-                                                    <td>{{$a->aktivitas_limbah->sumber ?? "-"}}</td>
+                                                    <td>{{ $a->aktivitas_limbah->sumber_unit->nama_unit ?? $a->aktivitas_limbah->sumber ?? "-" }}</td>
                                                     <td>{{$a->jml_masuk}} {{$masuk->satuan}}</td>
                                                     <td>{{Carbon\Carbon::parse($a->tgl_masuk)->addDays(90)}}</td>
                                                     <td>
@@ -238,14 +238,9 @@ Limbah
                                     <label for="yearSelect">Pilih Tahun:</label>
                                     <select class="form-control" id="yearSelect">
                                         <option value="" selected>=====Pilih Tahun=====</option>
-                                        <option value="2017">2017</option>
-                                        <option value="2018">2018</option>
-                                        <option value="2019">2019</option>
-                                        <option value="2020">2020</option>
-                                        <option value="2021">2021</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2024">2024</option>
+                                        @for($year = 2017; $year <= date('Y'); $year++)
+                                            <option value="{{ $year }}">{{ $year }}</option>
+                                        @endfor
                                     </select>
                                 </div>
                                 <div>
@@ -399,14 +394,9 @@ Limbah
                                     <label for="yearSelect">Pilih Tahun:</label>
                                     <select class="form-control" id="yearSelects">
                                         <option value="" selected>=====Pilih Tahun=====</option>
-                                        <option value="2017">2017</option>
-                                        <option value="2018">2018</option>
-                                        <option value="2019">2019</option>
-                                        <option value="2020">2020</option>
-                                        <option value="2021">2021</option>
-                                        <option value="2022">2022</option>
-                                        <option value="2023">2023</option>
-                                        <option value="2024">2024</option>
+                                        @for($year = 2017; $year <= date('Y'); $year++)
+                                            <option value="{{ $year }}">{{ $year }}</option>
+                                        @endfor
                                     </select>
                                 </div>
                                 <div>
@@ -468,7 +458,15 @@ Limbah
 
                     <div class="mb-3">
                         <label for="sumber" class="form-label">Unit / Instansi Penghasil</label>
-                        <input type="text" class="form-control" id="sumber" name="unit">
+                        @if(Session::has('login'))
+                            @php
+                                $user = App\Models\User::find(Session::get('id'));
+                            @endphp
+                            <input type="text" class="form-control" id="sumber" value="{{ $user->unit->nama_unit ?? 'Unit Tidak Tersedia' }}" readonly>
+                            <input type="hidden" name="unit_id" value="{{ $user->unit_id }}">
+                        @else
+                            <input type="text" class="form-control" id="sumber" value="Silahkan login terlebih dahulu" readonly>
+                        @endif
                     </div>
 
                     <label for="" class="form-label">Data Limbah</label>

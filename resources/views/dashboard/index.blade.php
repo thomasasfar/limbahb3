@@ -68,7 +68,7 @@ Dashboard | Website TPS Limbah B3 PT Semen Padang
                             <img src="{{asset('assets/img/profile.png')}}" class="rounded-circle img-thumbnail w-10"
                                 alt="Profile">
                         </div>
-                        <h4 class="fw-bold">{{ Session::get('unit') }}</h4>
+                        <h4 class="fw-bold">{{ $user->unit->nama_unit ?? 'Unit Tidak Tersedia' }}</h4>
                         <p class="text-muted mb-2">Email: {{ Session::get('email') }}</p>
                         <p class="text-muted">Level: {{ ucfirst(Session::get('level')) }}</p>
                         @if (Session::get('level')=="user")
@@ -231,13 +231,6 @@ Dashboard | Website TPS Limbah B3 PT Semen Padang
                             <small class="text-muted note-konversi mt-2 d-block"></small>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="deskripsiLimbah" class="form-label">Nomor Surat</label>
-                        <input type="text" class="form-control" name="no_form"
-                            placeholder="Masukan Nomor Surat"></input>
-                        <small class="text-disable"><b>Catatan:</b> Masukan nomor surat sesuai dengan NDO</small>
-                    </div>
-
                     <div class="mb-3">
                         <label for="deskripsiLimbah" class="form-label">Nama Personil Yang Menyerahkan</label>
                         <input type="text" class="form-control" name="menyerahkan"

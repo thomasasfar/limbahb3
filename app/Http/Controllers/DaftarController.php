@@ -103,8 +103,10 @@ class DaftarController extends Controller
             'nohp_user'=>$request->no_hp,
             'name'=>$request->name,
         ]);
+        // Update session with new values
         session()->put('email', $user->email);
-        session()->put('unit', $user->unit->nama_unit ?? '');
+        session()->put('unit_id', $user->unit_id);
+        session()->put('unit_name', $user->unit->nama_unit ?? '');
         session()->put('name', $user->name);
         $whatsappService = new WhatsappService();
         $message = "*{$request->name},anda berhasil mengubah informasi akun TPS Limbah anda dengan detail akun sebagai berikut:*\n"

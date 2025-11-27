@@ -252,7 +252,7 @@
             </tr>
             <tr style="border: 1px solid white;">
 
-                <th colspan="3">Ka.Unit {{$aktivitas_limbah->unit}}</th>
+                <th colspan="3">Ka.Unit {{ $aktivitas_limbah->sumber_unit->nama_unit ?? $aktivitas_limbah->user->unit->nama_unit ?? 'Unit Tidak Diketahui' }}</th>
             </tr>
             <tr style="border: 1px solid white;">
                 <td colspan="6" style="text-align:start;">Diterima pada : {{

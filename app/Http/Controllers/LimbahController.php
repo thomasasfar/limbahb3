@@ -119,10 +119,10 @@ class LimbahController extends Controller
                 
                 return [
                     'tgl_masuk' => $a->tgl_masuk,
-                    'jenis_limbah' => a->klasifikasi_limbah->jenis_limbah,
-                    'sumber_limbah' => $a->aktivitas_limbah->unit ?? "-",
+                    'jenis_limbah' => $a->klasifikasi_limbah->jenis_limbah,
+                    'sumber_limbah' => $a->sumber_unit->nama_unit ?? $a->user->unit->nama_unit ?? "-",
                     'jml_masuk' => $a->jml_masuk,
-                    'satuan' => a->klasifikasi_limbah->satuan,
+                    'satuan' => $a->klasifikasi_limbah->satuan,
                     'maksimal_penyimpanan' => Carbon::parse($a->tgl_masuk)->addDays(90)->toDateString(),
                 ];
             });
@@ -141,14 +141,41 @@ class LimbahController extends Controller
     public function pengajuan(Request $request)
     {
         $user = User::find(Session::get('id'));
+        
+        // Generate nomor surat otomatis
+        $currentMonth = Carbon::now()->format('m');
+        $currentYear = Carbon::now()->format('Y');
+        $kodeUnit = $user->unit->kode ?? '0000';
+        
+        // Ambil nomor terakhir untuk bulan ini
+        $lastNoForm = AktivitasLimbah::where('id_user', Session::get('id'))
+            ->whereYear('tanggal', $currentYear)
+            ->whereMonth('tanggal', $currentMonth)
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        // Ekstrak nomor urut dari no_form terakhir
+        $lastNumber = 0;
+        if ($lastNoForm && $lastNoForm->no_form) {
+            $parts = explode('/', $lastNoForm->no_form);
+            if (count($parts) > 0) {
+                $lastNumber = intval($parts[0]);
+            }
+        }
+        
+        // Increment nomor
+        $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        $noForm = "{$newNumber}/TPS-LIMBAHB3/{$kodeUnit}/{$currentMonth}.{$currentYear}";
+        
         $aktivitas = AktivitasLimbah::insertGetId([
-            'aktivitas'=>"menunggu_validasi",
+            'aktivitas'=> 'menunggu_validasi',
             'id_user'=>Session::get('id'),
             'tanggal'=>Carbon::now(),
-            'no_form'=>$request->no_form,
+            'no_form'=>$noForm,
             'menyerahkan'=>$request->menyerahkan ?? Session::get('name'),
             'penghasil'=>$user->penanggung_jawab,
-            'sumber'=>Session::get('unit'),
+            // store sumber as unit_id (integer FK)
+            'sumber'=>$user->unit_id,
         ]);
         $pengajuan = Pengajuan::insertGetId([
             'id_user'=>Session::get('id'),
@@ -161,7 +188,8 @@ class LimbahController extends Controller
             $lmbh = AktivitasMasukLimbah::insertGetId([
                 'id_klasifikasilimbah' => $limbah,
                 'jml_masuk' => $request->jml_kg[$index],
-                'sumber'=>Session::get('unit'),
+                // store sumber as unit_id (integer FK)
+                'sumber'=>$user->unit_id,
                 'tgl_masuk'=>$request->tanggal,
                 'id_aktivitaslimbah'=>$aktivitas,
                 'id_user'=>Session::get('id'),
@@ -499,7 +527,8 @@ class LimbahController extends Controller
             $limbah = AktivitasMasukLimbah::insertGetId([
                 'id_klasifikasilimbah' => $limbah,
                 'jml_masuk' => $request->jml_masuk[$index],
-                'sumber'=>$request->unit,
+                // accept either unit_id (preferred) or fallback to unit
+                'sumber'=>$request->unit_id ?? $request->unit,
                 'tgl_masuk'=>$request->tanggal,
                 'id_aktivitaslimbah'=>$aktivitas,
                 'id_user'=>Session::get('id'),

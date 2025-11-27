@@ -38,7 +38,9 @@ class LoginController extends Controller
         $user = User::where('email',$request->email)->first();
         if (Auth::Attempt($data)) {
             Session::put('id',$user->id);
-            Session::put('unit',$user->unit);
+            // store unit id and readable unit name in session
+            Session::put('unit_id',$user->unit_id);
+            Session::put('unit_name', $user->unit->nama_unit ?? null);
             Session::put('name',$user->name);
             Session::put('level',$user->level);
             Session::put('email',$user->email);

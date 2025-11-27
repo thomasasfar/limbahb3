@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\AktivitasKeluarLimbah;
 use App\Models\AktivitasMasukLimbah;
 use App\Models\User;
+use App\Models\Unit;
 
 
 class AktivitasLimbah extends Model
@@ -24,5 +25,11 @@ class AktivitasLimbah extends Model
     }
     public function pengajuan(){
         return $this->hasMany(Pengajuan::class,'id_aktivitaslimbah');
+    }
+
+    // relation to unit stored in `sumber` (now stores unit_id)
+    public function sumber_unit()
+    {
+        return $this->belongsTo(Unit::class, 'sumber');
     }
 }

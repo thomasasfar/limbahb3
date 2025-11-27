@@ -335,8 +335,18 @@
                   <input type="email" class="form-control" id="email" name="email" value="{{ $user->email }}" required>
                 </div>
                 <div class="mb-3">
-                  <label for="unit" class="form-label">Unit</label>
-                  <input type="text" class="form-control" id="unit" name="unit" value="{{ $user->unit }}">
+                  <label for="unit_id" class="form-label">Unit</label>
+                  <select class="form-select" id="unit_id" name="unit_id" required>
+                    <option value="">Pilih Unit</option>
+                    @php
+                      $units = App\Models\Unit::all();
+                    @endphp
+                    @foreach($units as $unit)
+                      <option value="{{ $unit->id }}" {{ $user->unit_id == $unit->id ? 'selected' : '' }}>
+                        {{ $unit->kode }} - {{ $unit->nama_unit }}
+                      </option>
+                    @endforeach
+                  </select>
                 </div>
                 <div class="mb-3">
                   <label for="penanggung_jawab" class="form-label">Penanggung Jawab/ Ka. Unit</label>

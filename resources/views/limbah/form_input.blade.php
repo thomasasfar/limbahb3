@@ -475,8 +475,17 @@
                 </td>
             </tr>
             <tr>
-                <th colspan="3">Ka.Unit <input class="form-control" type="text" name="unit"
-                        placeholder="Silahkan isi nama Unit"></th>
+                <th colspan="3">Ka.Unit 
+                    <select class="form-control" name="unit_id" required>
+                        <option value="">Pilih Unit</option>
+                        @php
+                            $units = App\Models\Unit::all();
+                        @endphp
+                        @foreach($units as $unit)
+                            <option value="{{ $unit->id }}">{{ $unit->kode }} - {{ $unit->nama_unit }}</option>
+                        @endforeach
+                    </select>
+                </th>
             </tr>
             <tr>
                 <td colspan="6" style="text-align:start;">Diterima Tanggal : <input type="date"></td>
