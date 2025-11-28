@@ -75,6 +75,7 @@ Route::get('/limbah-aktivitas/grafik', [LimbahController::class, 'showGrafik']);
 Route::post('/limbah-aktivitas/data', [LimbahController::class, 'getDataForChart'])->name('limbah-aktivitas.data');
 Route::get('/limbah-masuk/{year}', [LimbahController::class, 'getLimbahMasukByYear']);
 Route::get('/limbah-keluar/{year}', [LimbahController::class, 'getLimbahKeluarByYear']);
+Route::get('/limbah-by-unit', [LimbahController::class, 'getLimbahByUnit']);
 
 Route::get('/filter-aktivitas-masuk', [LimbahController::class, 'filterAktivitasMasuk'])->name('filterAktivitasMasuk');
 Route::get('/filter-limbah', [LimbahController::class, 'filterLimbah'])->name('filterLimbah');

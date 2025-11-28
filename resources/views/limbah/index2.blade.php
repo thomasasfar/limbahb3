@@ -199,7 +199,7 @@ Limbah
                                                         </button>
 
                                                         <div class="modal fade" id="pdfModal{{$index}}" tabindex="-1"
-                                                            aria-labelledby="pdfModalLabel" aria-hidden="true">
+                                                            aria-labelledby="pdfModalLabel" aria-hidden="true" data-pdf-url="{{ $a->id_aktivitaslimbah ? asset('laporan/limbah/masuk/limbah_masuk' .$a->aktivitas_limbah->id.'.pdf') : '' }}">
                                                             <div class="modal-dialog modal-xl">
                                                                 <div class="modal-content">
                                                                     <div class="modal-header">
@@ -211,8 +211,8 @@ Limbah
                                                                     </div>
                                                                     <div class="modal-body text-center">
                                                                         @if ($a->id_aktivitaslimbah!=null)
-                                                                        <iframe
-                                                                            src="{{ asset('laporan/limbah/masuk/limbah_masuk' .$a->aktivitas_limbah->id.'.pdf' ) }}"
+                                                                        <iframe class="pdf-iframe"
+                                                                            data-src="{{ asset('laporan/limbah/masuk/limbah_masuk' .$a->aktivitas_limbah->id.'.pdf' ) }}"
                                                                             style="width: 100%; height: 500px; border: none;"></iframe>
                                                                         @else
                                                                         <i>Dokumen PDF tidak tersedia</i>
@@ -366,8 +366,8 @@ Limbah
                                                                             value="laporan/limbah/masuk/limbah_masuk'.{{$a->aktivitas_limbah->id}}.'.pdf">
                                                                         --}}
                                                                         @if ($a->id_aktivitaslimbah!=null)
-                                                                        <iframe
-                                                                            src="{{ asset('laporan/limbah/keluar/limbah_keluar' .$a->aktivitas_limbah->id.'.pdf' ) }}"
+                                                                        <iframe class="pdf-iframe"
+                                                                            data-src="{{ asset('laporan/limbah/keluar/limbah_keluar' .$a->aktivitas_limbah->id.'.pdf' ) }}"
                                                                             style="width: 100%; height: 500px; border: none;"></iframe>
                                                                         @else
                                                                         <i>Dokumen PDF tidak tersedia</i>
@@ -418,16 +418,52 @@ Limbah
                         <h2>Akumulasi Sisa Limbah per Tahun</h2>
                         <canvas id="grafikSisa"></canvas> --}}
 
+                        <h2>Grafik Akumulasi Limbah Berdasarkan Unit</h2>
+                        <div class="mb-4">
+                            <canvas id="limbahChartByUnit" style="max-height: 400px;"></canvas>
+                        </div>
+
                         <h2>Grafik Limbah PerTahun</h2>
 
                         <!-- Dropdown untuk memilih jenis limbah -->
-                        <label for="limbah">Pilih Jenis Limbah:</label>
-                        <select class="form-control" id="limbah" name="limbah">
-                            <option value="">-- Pilih Limbah --</option>
-                            @foreach($klasifikasi_limbah as $limbah)
-                            <option value="{{ $limbah->id }}">{{ $limbah->jenis_limbah }}</option>
-                            @endforeach
-                        </select>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="limbah">Pilih Jenis Limbah:</label>
+                                <select class="form-control" id="limbah" name="limbah">
+                                    <option value="">-- Pilih Limbah --</option>
+                                    @foreach($klasifikasi_limbah as $limbah)
+                                    <option value="{{ $limbah->id }}">{{ $limbah->jenis_limbah }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="filter-tahun">Pilih Tahun:</label>
+                                <select class="form-control" id="filter-tahun" name="filter-tahun">
+                                    <option value="">-- Semua Tahun --</option>
+                                    @for($year = 2017; $year <= date('Y'); $year++)
+                                    <option value="{{ $year }}">{{ $year }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="filter-bulan">Pilih Bulan:</label>
+                                <select class="form-control" id="filter-bulan" name="filter-bulan" disabled>
+                                    <option value="">-- Pilih Tahun Dulu --</option>
+                                    <option value="1">Januari</option>
+                                    <option value="2">Februari</option>
+                                    <option value="3">Maret</option>
+                                    <option value="4">April</option>
+                                    <option value="5">Mei</option>
+                                    <option value="6">Juni</option>
+                                    <option value="7">Juli</option>
+                                    <option value="8">Agustus</option>
+                                    <option value="9">September</option>
+                                    <option value="10">Oktober</option>
+                                    <option value="11">November</option>
+                                    <option value="12">Desember</option>
+                                </select>
+                            </div>
+                        </div>
 
                         <!-- Tempat untuk Grafik -->
                         <canvas id="grafikLimbah" width="400" height="200"></canvas>
@@ -604,6 +640,38 @@ Limbah
     $(document).ready(function () {
       $("#basic-datatables").DataTable({});
 
+      $("#multi-filter-select1").DataTable({
+        pageLength: 10,
+        initComplete: function () {
+          this.api()
+            .columns()
+            .every(function () {
+              var column = this;
+              var select = $(
+                '<select class="form-select"><option value=""></option></select>'
+              )
+                .appendTo($(column.footer()).empty())
+                .on("change", function () {
+                  var val = $.fn.dataTable.util.escapeRegex($(this).val());
+
+                  column
+                    .search(val ? "^" + val + "$" : "", true, false)
+                    .draw();
+                });
+
+              column
+                .data()
+                .unique()
+                .sort()
+                .each(function (d, j) {
+                  select.append(
+                    '<option value="' + d + '">' + d + "</option>"
+                  );
+                });
+            });
+        },
+      });
+
       $("#multi-filter-select3").DataTable({
         pageLength: 10,
         initComplete: function () {
@@ -729,6 +797,93 @@ Limbah
 
 </script>
 
+<script>
+    // Chart for Limbah by Unit
+    const ctxUnit = document.getElementById('limbahChartByUnit').getContext('2d');
+    let limbahChartByUnit;
+
+    // Function to fetch and display data by unit
+    function getLimbahByUnit() {
+        fetch('/limbah-by-unit')
+            .then(response => response.json())
+            .then(data => {
+                const unitLabels = [];
+                const unitData = [];
+                const backgroundColors = [];
+                
+                // Generate colors for each unit
+                const colors = [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)',
+                    'rgba(83, 102, 255, 0.7)',
+                    'rgba(255, 99, 255, 0.7)',
+                    'rgba(99, 255, 132, 0.7)'
+                ];
+                
+                data.forEach((item, index) => {
+                    unitLabels.push(`${item.kode} - ${item.nama_unit}`);
+                    unitData.push(item.total_masuk);
+                    backgroundColors.push(colors[index % colors.length]);
+                });
+
+                // Destroy existing chart if any
+                if (limbahChartByUnit) {
+                    limbahChartByUnit.destroy();
+                }
+
+                // Create new chart
+                limbahChartByUnit = new Chart(ctxUnit, {
+                    type: 'bar',
+                    data: {
+                        labels: unitLabels,
+                        datasets: [{
+                            label: 'Total Limbah Masuk (Kg)',
+                            data: unitData,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors.map(color => color.replace('0.7', '1')),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString() + ' Kg';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Total: ' + context.parsed.y.toLocaleString() + ' Kg';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error fetching unit data:', error));
+    }
+
+    // Load chart when page loads (for Laporan Limbah tab)
+    getLimbahByUnit();
+</script>
+
 
 {{-- script untuk filter limbah --}}
 <script>
@@ -829,32 +984,100 @@ Limbah
 <script>
     let chartLimbah;
 
+    // Event listener saat memilih tahun - aktifkan dropdown bulan
+    $('#filter-tahun').change(function() {
+        const tahun = $(this).val();
+        const bulanSelect = $('#filter-bulan');
+        
+        if (tahun) {
+            bulanSelect.prop('disabled', false);
+            bulanSelect.html(`
+                <option value="">-- Semua Bulan --</option>
+                <option value="1">Januari</option>
+                <option value="2">Februari</option>
+                <option value="3">Maret</option>
+                <option value="4">April</option>
+                <option value="5">Mei</option>
+                <option value="6">Juni</option>
+                <option value="7">Juli</option>
+                <option value="8">Agustus</option>
+                <option value="9">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+            `);
+        } else {
+            bulanSelect.prop('disabled', true);
+            bulanSelect.html('<option value="">-- Pilih Tahun Dulu --</option>');
+        }
+        
+        // Refresh chart if limbah selected
+        if ($('#limbah').val()) {
+            loadChartData();
+        }
+    });
+
+    // Event listener saat memilih bulan
+    $('#filter-bulan').change(function() {
+        if ($('#limbah').val()) {
+            loadChartData();
+        }
+    });
+
     // Event listener saat memilih limbah
     $('#limbah').change(function() {
         const idLimbah = $(this).val();
+        if (idLimbah) {
+            loadChartData();
+        }
+    });
+
+    // Fungsi untuk load data chart
+    function loadChartData() {
+        const idLimbah = $('#limbah').val();
+        const tahun = $('#filter-tahun').val();
+        const bulan = $('#filter-bulan').val();
 
         if (idLimbah) {
-            // Ambil data dari server menggunakan AJAX
             $.ajax({
                 url: '{{ route("grafik.limbah.data") }}',
                 method: 'POST',
                 data: {
                     id_klasifikasilimbah: idLimbah,
+                    tahun: tahun,
+                    bulan: bulan,
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
-                    updateChart(response);
+                    updateChart(response, tahun, bulan);
                 }
             });
         }
-    });
+    }
 
     // Fungsi untuk memperbarui grafik
-    function updateChart(data) {
-        const labels = data.map(item => item.tahun);
-        const masukData = data.map(item => item.masuk);
-        const keluarData = data.map(item => item.keluar);
-        const sisaData = data.map(item => item.sisa);
+    function updateChart(data, tahun, bulan) {
+        let labels, masukData, keluarData, sisaData;
+
+        if (bulan && tahun) {
+            // Group by date if month and year selected
+            labels = data.map(item => item.tanggal || item.tahun);
+            masukData = data.map(item => item.masuk);
+            keluarData = data.map(item => item.keluar);
+            sisaData = data.map(item => item.sisa);
+        } else if (tahun) {
+            // Group by month if only year selected
+            labels = data.map(item => item.bulan || item.tahun);
+            masukData = data.map(item => item.masuk);
+            keluarData = data.map(item => item.keluar);
+            sisaData = data.map(item => item.sisa);
+        } else {
+            // Group by year if no filter
+            labels = data.map(item => item.tahun);
+            masukData = data.map(item => item.masuk);
+            keluarData = data.map(item => item.keluar);
+            sisaData = data.map(item => item.sisa);
+        }
 
         // Hapus grafik lama jika ada
         if (chartLimbah) {
@@ -1443,5 +1666,31 @@ Limbah
 
   
 });
+</script>
+
+<script>
+    // Lazy loading for PDF iframes - only load when modal is shown
+    $(document).ready(function() {
+        $('.modal').on('show.bs.modal', function (e) {
+            const modal = $(this);
+            const iframe = modal.find('iframe.pdf-iframe');
+            
+            // Only set src if it hasn't been set yet
+            if (iframe.length > 0 && !iframe.attr('src') && iframe.attr('data-src')) {
+                iframe.attr('src', iframe.attr('data-src'));
+            }
+        });
+
+        // Optional: Clear iframe when modal is hidden to save memory
+        $('.modal').on('hidden.bs.modal', function (e) {
+            const modal = $(this);
+            const iframe = modal.find('iframe.pdf-iframe');
+            
+            // Uncomment below if you want to clear the iframe when modal closes
+            // if (iframe.length > 0) {
+            //     iframe.attr('src', '');
+            // }
+        });
+    });
 </script>
 @endsection

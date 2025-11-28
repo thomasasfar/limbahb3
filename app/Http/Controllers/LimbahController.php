@@ -456,48 +456,159 @@ class LimbahController extends Controller
     public function getLimbahData(Request $request)
     {
         $idKlasifikasiLimbah = $request->id_klasifikasilimbah;
+        $tahun = $request->tahun;
+        $bulan = $request->bulan;
 
-        // Ambil data masuk berdasarkan id
-        $limbahMasuk = DB::table('aktivitas_masuk_limbahs')
-            ->select(DB::raw('YEAR(tgl_masuk) as tahun, SUM(jml_masuk) as total_masuk'))
-            ->where('id_klasifikasilimbah', $idKlasifikasiLimbah)
-            ->groupBy('tahun')
-            ->orderBy('tahun')
-            ->get();
+        // Query builder untuk limbah masuk
+        $queryMasuk = DB::table('aktivitas_masuk_limbahs')
+            ->where('id_klasifikasilimbah', $idKlasifikasiLimbah);
 
-        // Ambil data keluar berdasarkan id
-        $limbahKeluar = DB::table('aktivitas_keluar_limbahs')
-            ->select(DB::raw('YEAR(tgl_keluar) as tahun, SUM(jml_keluar) as total_keluar'))
-            ->where('id_klasifikasilimbah', $idKlasifikasiLimbah)
-            ->groupBy('tahun')
-            ->orderBy('tahun')
-            ->get();
+        // Query builder untuk limbah keluar
+        $queryKeluar = DB::table('aktivitas_keluar_limbahs')
+            ->where('id_klasifikasilimbah', $idKlasifikasiLimbah);
 
-        // Hitung sisa limbah
-        $data = [];
-        foreach ($limbahMasuk as $masuk) {
-            $tahun = $masuk->tahun;
-            $data[$tahun]['masuk'] = $masuk->total_masuk;
-        }
-        foreach ($limbahKeluar as $keluar) {
-            $tahun = $keluar->tahun;
-            $data[$tahun]['keluar'] = $keluar->total_keluar;
-        }
+        // Filter berdasarkan tahun dan bulan
+        if ($tahun && $bulan) {
+            // Group by date (per hari dalam bulan tersebut)
+            $queryMasuk->select(DB::raw('DAY(tgl_masuk) as hari, SUM(jml_masuk) as total_masuk'))
+                ->whereYear('tgl_masuk', $tahun)
+                ->whereMonth('tgl_masuk', $bulan)
+                ->groupBy('hari')
+                ->orderBy('hari');
 
-        // Akumulasi sisa
-        $sisaLimbah = [];
-        foreach ($data as $tahun => $values) {
-            $masuk = $values['masuk'] ?? 0;
-            $keluar = $values['keluar'] ?? 0;
-            $sisaLimbah[] = [
-                'tahun' => $tahun,
-                'sisa'  => $masuk - $keluar,
-                'masuk' => $masuk,
-                'keluar'=> $keluar
+            $queryKeluar->select(DB::raw('DAY(tgl_keluar) as hari, SUM(jml_keluar) as total_keluar'))
+                ->whereYear('tgl_keluar', $tahun)
+                ->whereMonth('tgl_keluar', $bulan)
+                ->groupBy('hari')
+                ->orderBy('hari');
+
+            $limbahMasuk = $queryMasuk->get();
+            $limbahKeluar = $queryKeluar->get();
+
+            // Hitung sisa limbah per hari
+            $data = [];
+            foreach ($limbahMasuk as $masuk) {
+                $hari = $masuk->hari;
+                $data[$hari]['masuk'] = $masuk->total_masuk;
+            }
+            foreach ($limbahKeluar as $keluar) {
+                $hari = $keluar->hari;
+                $data[$hari]['keluar'] = $keluar->total_keluar;
+            }
+
+            $sisaLimbah = [];
+            foreach ($data as $hari => $values) {
+                $masuk = $values['masuk'] ?? 0;
+                $keluar = $values['keluar'] ?? 0;
+                $sisaLimbah[] = [
+                    'tanggal' => $hari,
+                    'sisa'  => $masuk - $keluar,
+                    'masuk' => $masuk,
+                    'keluar'=> $keluar
+                ];
+            }
+
+        } elseif ($tahun) {
+            // Group by month (per bulan dalam tahun tersebut)
+            $queryMasuk->select(DB::raw('MONTH(tgl_masuk) as bulan, SUM(jml_masuk) as total_masuk'))
+                ->whereYear('tgl_masuk', $tahun)
+                ->groupBy('bulan')
+                ->orderBy('bulan');
+
+            $queryKeluar->select(DB::raw('MONTH(tgl_keluar) as bulan, SUM(jml_keluar) as total_keluar'))
+                ->whereYear('tgl_keluar', $tahun)
+                ->groupBy('bulan')
+                ->orderBy('bulan');
+
+            $limbahMasuk = $queryMasuk->get();
+            $limbahKeluar = $queryKeluar->get();
+
+            // Hitung sisa limbah per bulan
+            $data = [];
+            foreach ($limbahMasuk as $masuk) {
+                $bulanNum = $masuk->bulan;
+                $data[$bulanNum]['masuk'] = $masuk->total_masuk;
+            }
+            foreach ($limbahKeluar as $keluar) {
+                $bulanNum = $keluar->bulan;
+                $data[$bulanNum]['keluar'] = $keluar->total_keluar;
+            }
+
+            $namaBulan = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
             ];
+
+            $sisaLimbah = [];
+            foreach ($data as $bulanNum => $values) {
+                $masuk = $values['masuk'] ?? 0;
+                $keluar = $values['keluar'] ?? 0;
+                $sisaLimbah[] = [
+                    'bulan' => $namaBulan[$bulanNum],
+                    'sisa'  => $masuk - $keluar,
+                    'masuk' => $masuk,
+                    'keluar'=> $keluar
+                ];
+            }
+
+        } else {
+            // Group by year (default behavior)
+            $queryMasuk->select(DB::raw('YEAR(tgl_masuk) as tahun, SUM(jml_masuk) as total_masuk'))
+                ->groupBy('tahun')
+                ->orderBy('tahun');
+
+            $queryKeluar->select(DB::raw('YEAR(tgl_keluar) as tahun, SUM(jml_keluar) as total_keluar'))
+                ->groupBy('tahun')
+                ->orderBy('tahun');
+
+            $limbahMasuk = $queryMasuk->get();
+            $limbahKeluar = $queryKeluar->get();
+
+            // Hitung sisa limbah per tahun
+            $data = [];
+            foreach ($limbahMasuk as $masuk) {
+                $tahun = $masuk->tahun;
+                $data[$tahun]['masuk'] = $masuk->total_masuk;
+            }
+            foreach ($limbahKeluar as $keluar) {
+                $tahun = $keluar->tahun;
+                $data[$tahun]['keluar'] = $keluar->total_keluar;
+            }
+
+            $sisaLimbah = [];
+            foreach ($data as $tahun => $values) {
+                $masuk = $values['masuk'] ?? 0;
+                $keluar = $values['keluar'] ?? 0;
+                $sisaLimbah[] = [
+                    'tahun' => $tahun,
+                    'sisa'  => $masuk - $keluar,
+                    'masuk' => $masuk,
+                    'keluar'=> $keluar
+                ];
+            }
         }
 
         return response()->json($sisaLimbah);
+    }
+
+    public function getLimbahByUnit()
+    {
+        // Ambil data limbah masuk berdasarkan unit
+        $limbahByUnit = DB::table('aktivitas_masuk_limbahs as aml')
+            ->join('users as u', 'aml.id_user', '=', 'u.id')
+            ->join('units as un', 'u.unit_id', '=', 'un.id')
+            ->select(
+                'un.nama_unit',
+                'un.kode',
+                DB::raw('SUM(aml.jml_masuk) as total_masuk')
+            )
+            ->where('aml.status', 1)
+            ->groupBy('un.id', 'un.nama_unit', 'un.kode')
+            ->orderBy('total_masuk', 'desc')
+            ->get();
+
+        return response()->json($limbahByUnit);
     }
 
     /**

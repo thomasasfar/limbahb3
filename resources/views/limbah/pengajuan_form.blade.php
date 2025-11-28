@@ -167,7 +167,7 @@
 
             </tr>
             <tr>
-                <th colspan="3">Ka.Unit {{$user->unit}}</th>
+                <th colspan="3">Ka.Unit {{$user->unit->nama_unit}}</th>
             </tr>
             <tr>
                 <td colspan="6" style="text-align:start;">Diterima Tanggal : </td>
